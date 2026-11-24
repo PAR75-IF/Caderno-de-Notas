@@ -77,6 +77,8 @@ DATABASES = {
     }
 }
 
+AUTH_USER_MODEL = 'app.Usuario'
+
 
 # Validadores de senha: os 4 padrões do Django.
 AUTH_PASSWORD_VALIDATORS = [
