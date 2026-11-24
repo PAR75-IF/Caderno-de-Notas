@@ -24,6 +24,14 @@ class EstiloBootstrap:
                 widget.attrs['class'] = 'form-control'
 
 
+def campo_senha(rotulo, ajuda=''):
+    """Cria um campo de senha. O navegador mostra bolinhas no lugar do texto."""
+    return forms.CharField(
+        label=rotulo,
+        help_text=ajuda,
+        strip=False,  # espaços fazem parte da senha (passphrases têm espaços)
+        widget=forms.PasswordInput(attrs={'autocomplete': 'off'}),
+    )
 # ----------------------------------------------------------------------
 # Contas e acesso
 # ----------------------------------------------------------------------
@@ -37,3 +45,13 @@ class FormCadastro(EstiloBootstrap, UserCreationForm):
 
 class FormLogin(EstiloBootstrap, AuthenticationForm):
     """Login (RF03). O AuthenticationForm chama authenticate(), que consulta os backends."""
+
+
+# ----------------------------------------------------------------------
+# Ferramentas de senha
+# ----------------------------------------------------------------------
+
+class FormTestarSenha(EstiloBootstrap, forms.Form):
+    """Senha a ser testada (RF20). Ela não é guardada em lugar nenhum."""
+
+    senha = campo_senha('Senha para testar')

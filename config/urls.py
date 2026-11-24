@@ -14,4 +14,7 @@ urlpatterns = [
     path('sair/', views.Sair.as_view(), name='sair'),
     # Cadernos
     path('cadernos/', views.ListarCadernos.as_view(), name='cadernos'),
+
+    # Ferramentas de senha (sem login)
+    path('ferramentas/forca/', views.TestarForca.as_view(), name='forca'),
 ]

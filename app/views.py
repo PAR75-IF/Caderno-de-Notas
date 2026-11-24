@@ -7,9 +7,10 @@ from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.decorators.cache import never_cache
+from app import entropia
 
 from app.forms import (
-    FormCadastro, FormLogin,
+    FormCadastro, FormLogin, FormTestarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -97,3 +98,36 @@ class ListarCadernos(LoginRequiredMixin, View):
             .annotate(total_notas=Count('notas'))
         )
         return render(request, 'app/cadernos.html', {'cadernos': cadernos})
+
+
+    # ======================================================================
+# Ferramentas de senha (RF19 e RF20) - funcionam sem login
+# ======================================================================
+
+@method_decorator(never_cache, name='dispatch')
+class TestarForca(View):
+    """
+    RF20: o cálculo é feito aqui no servidor (o projeto não usa JavaScript
+    próprio). A senha testada não é gravada nem devolvida na página.
+    """
+
+    def get(self, request):
+        return render(request, 'app/forca.html', {'form': FormTestarSenha()})
+
+    def post(self, request):
+        form = FormTestarSenha(request.POST)
+        contexto = {'form': form}
+        if form.is_valid():
+            senha = form.cleaned_data['senha']
+            bits = entropia.calcular_entropia(senha)
+            contexto.update({
+                'testada': True,
+                'bits': bits,
+                'comprimento': len(senha),
+                'alfabeto': entropia.tamanho_alfabeto(senha),
+                'forca': entropia.classificar_forca(bits),
+                'minimo': entropia.MINIMO_BITS_PADRAO,
+                'passa': bits >= entropia.MINIMO_BITS_PADRAO,
+            })
+            contexto['form'] = FormTestarSenha()  # devolve o campo vazio
+        return render(request, 'app/forca.html', contexto)
