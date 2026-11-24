@@ -80,12 +80,16 @@ DATABASES = {
 AUTH_USER_MODEL = 'app.Usuario'
 
 
-# Validadores de senha: os 4 padrões do Django.
+# Validadores de senha: os 4 padrões do Django + o medidor de entropia.
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {
+        'NAME': 'app.entropia.ValidadorEntropia',
+        'OPTIONS': {'minimo_bits': 60},
+    },
 ]
 
 # Para onde ir quando uma página exige login e depois de entrar/sair.
