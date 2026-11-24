@@ -1,0 +1,13 @@
+{% extends 'app/base.html' %}
+
+{% block titulo %}Cadernos - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+{# Versão provisória: na Etapa 13 esta página ganha os cartões e os links. #}
+<h1 class="h3 mb-4">Meus cadernos</h1>
+<ul class="list-group">
+    {% for caderno in cadernos %}
+        <li class="list-group-item">{{ caderno.nome }} ({{ caderno.total_notas }} nota{{ caderno.total_notas|pluralize }})</li>
+    {% endfor %}
+</ul>
+{% endblock %}

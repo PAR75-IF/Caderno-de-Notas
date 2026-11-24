@@ -1,0 +1,40 @@
+body {
+    background-color: #f6f7f9;
+}
+
+/* Barra do topo */
+.barra-topo {
+    background-color: #1f3a5f;
+}
+
+/* Conteúdo da nota: respeita as quebras de linha digitadas */
+.conteudo-nota {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    min-height: 6rem;
+}
+
+/* Etiquetas das notas */
+.etiqueta {
+    background-color: #e3ecf7;
+    color: #1f3a5f;
+    font-weight: 500;
+}
+
+/* Passphrase gerada: letra de máquina, grande, fácil de copiar */
+.frase {
+    font-family: ui-monospace, Consolas, "Courier New", monospace;
+    font-size: 1.5rem;
+    overflow-wrap: anywhere;
+}
+
+/* Caixas de marcar das etiquetas no formulário de nota */
+form input[type="checkbox"] {
+    margin-right: 0.4rem;
+}
+
+/* A lista de regras de senha que o Django mostra no cadastro */
+.form-text ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}

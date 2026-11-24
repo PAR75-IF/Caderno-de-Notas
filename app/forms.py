@@ -1,0 +1,39 @@
+from django import forms
+from django.contrib.auth.forms import (
+    AuthenticationForm, PasswordChangeForm, UserCreationForm,
+)
+from django.contrib.auth.password_validation import validate_password
+from app.models import Caderno, Etiqueta, NotaComum, NotaProtegida, Usuario
+
+
+class EstiloBootstrap:
+    """
+    Mixin (classe auxiliar para herança múltipla): depois que o formulário
+    é montado, coloca a classe CSS do Bootstrap certa em cada campo.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in self.fields.values():
+            widget = campo.widget
+            if isinstance(widget, forms.CheckboxSelectMultiple):
+                continue  # as caixas de marcar são estilizadas no CSS
+            if isinstance(widget, forms.Select):
+                widget.attrs['class'] = 'form-select'
+            else:
+                widget.attrs['class'] = 'form-control'
+
+
+# ----------------------------------------------------------------------
+# Contas e acesso
+# ----------------------------------------------------------------------
+
+class FormCadastro(EstiloBootstrap, UserCreationForm):
+
+    class Meta:
+        model = Usuario
+        fields = ['username']
+
+
+class FormLogin(EstiloBootstrap, AuthenticationForm):
+    """Login (RF03). O AuthenticationForm chama authenticate(), que consulta os backends."""
