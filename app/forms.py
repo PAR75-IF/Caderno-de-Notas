@@ -3,6 +3,7 @@ from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm, UserCreationForm,
 )
 from django.contrib.auth.password_validation import validate_password
+from app import diceware
 from app.models import Caderno, Etiqueta, NotaComum, NotaProtegida, Usuario
 
 
@@ -51,7 +52,21 @@ class FormLogin(EstiloBootstrap, AuthenticationForm):
 # Ferramentas de senha
 # ----------------------------------------------------------------------
 
+
 class FormTestarSenha(EstiloBootstrap, forms.Form):
     """Senha a ser testada (RF20). Ela não é guardada em lugar nenhum."""
 
     senha = campo_senha('Senha para testar')
+
+
+class FormGerador(EstiloBootstrap, forms.Form):
+    """Número de palavras da passphrase (RF19): de 5 a 8."""
+
+    palavras = forms.TypedChoiceField(
+        label='Número de palavras',
+        coerce=int,  # converte a opção escolhida de texto para inteiro
+        choices=[
+            (n, f'{n} palavras')
+            for n in range(diceware.MINIMO_PALAVRAS, diceware.MAXIMO_PALAVRAS + 1)
+        ],
+    )

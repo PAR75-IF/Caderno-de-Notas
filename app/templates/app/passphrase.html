@@ -1,0 +1,45 @@
+{% extends 'app/base.html' %}
+
+{% block titulo %}Gerar passphrase - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="h3 mb-3">Gerador de passphrases</h1>
+        <p class="text-secondary">
+            Uma passphrase é uma senha formada por várias palavras sorteadas (método Diceware).
+            É forte e mais fácil de lembrar do que uma sequência de símbolos.
+        </p>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <p class="frase mb-3">{{ frase }}</p>
+                <p class="mb-1">
+                    Entropia: <strong>{{ bits|floatformat:1 }} bits</strong>
+                    <span class="badge text-bg-{{ forca.cor }}">{{ forca.rotulo }}</span>
+                </p>
+                <div class="progress" role="progressbar" aria-label="Força da passphrase"
+                     aria-valuenow="{{ forca.porcentagem }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar bg-{{ forca.cor }}" style="width: {{ forca.porcentagem }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label" for="{{ form.palavras.id_for_label }}">{{ form.palavras.label }}</label>
+                {{ form.palavras }}
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">Gerar outra</button>
+            </div>
+        </form>
+
+        <p class="text-secondary small mt-4">
+            Cada palavra é sorteada entre 7.776 e vale cerca de 12,9 bits. A frase é gerada
+            no servidor com o módulo <code>secrets</code> e não fica guardada em lugar nenhum.
+            Lista de palavras: Dadoware (CC BY-NC 3.0).
+        </p>
+    </div>
+</div>
+{% endblock %}

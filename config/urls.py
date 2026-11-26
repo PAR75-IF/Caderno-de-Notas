@@ -16,5 +16,6 @@ urlpatterns = [
     path('cadernos/', views.ListarCadernos.as_view(), name='cadernos'),
 
     # Ferramentas de senha (sem login)
+    path('ferramentas/passphrase/', views.GerarPassphrase.as_view(), name='passphrase'),
     path('ferramentas/forca/', views.TestarForca.as_view(), name='forca'),
 ]

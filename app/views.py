@@ -8,9 +8,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.decorators.cache import never_cache
 from app import entropia
+from app import diceware, entropia
 
 from app.forms import (
-    FormCadastro, FormLogin, FormTestarSenha,
+    FormCadastro, FormGerador, FormLogin, FormTestarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -131,3 +132,23 @@ class TestarForca(View):
             })
             contexto['form'] = FormTestarSenha()  # devolve o campo vazio
         return render(request, 'app/forca.html', contexto)
+
+    
+
+@method_decorator(never_cache, name='dispatch')
+class GerarPassphrase(View):
+    """RF19: cada vez que a página carrega, sorteia uma frase nova."""
+
+    def get(self, request):
+        form = FormGerador(request.GET or {'palavras': diceware.PADRAO_PALAVRAS})
+        if form.is_valid():
+            numero = form.cleaned_data['palavras']
+        else:
+            numero = diceware.PADRAO_PALAVRAS
+        bits = diceware.entropia_passphrase(numero)
+        return render(request, 'app/passphrase.html', {
+            'form': form,
+            'frase': diceware.gerar_passphrase(numero),
+            'bits': bits,
+            'forca': entropia.classificar_forca(bits),
+        })
