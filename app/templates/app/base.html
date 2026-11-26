@@ -39,7 +39,7 @@
                            data-bs-toggle="dropdown" aria-expanded="false">{{ user.username }}</a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{% url 'trocar_senha' %}">Trocar senha de login</a></li> 
-                            {# <li><a class="dropdown-item" href="{% url 'senha_estresse' %}">Senha de estresse</a></li> #}
+                           <li><a class="dropdown-item" href="{% url 'senha_estresse' %}">Senha de estresse</a></li> 
                             {% if user.is_staff %}
                                 <li><a class="dropdown-item" href="{% url 'admin:index' %}">Painel administrativo</a></li>
                             {% endif %}

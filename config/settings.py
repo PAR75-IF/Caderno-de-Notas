@@ -79,6 +79,12 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'app.Usuario'
 
+# O Django tenta os backends na ordem. Primeiro a senha normal; se ela
+# falhar, o segundo backend confere a senha de estresse.
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'app.backends.BackendSenhaEstresse',
+]
 
 # Validadores de senha: os 4 padrões do Django + o medidor de entropia.
 AUTH_PASSWORD_VALIDATORS = [

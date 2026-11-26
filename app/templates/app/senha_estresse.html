@@ -1,0 +1,38 @@
+{% extends 'app/base.html' %}
+
+{% block titulo %}Senha de estresse - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+{% comment %}
+    Esta página NÃO mostra se já existe uma senha de estresse definida.
+    É de propósito: se alguém obrigar o usuário a entrar na conta e abrir
+    esta tela, ela não revela nada.
+{% endcomment %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h1 class="h3 mb-3">Senha de estresse</h1>
+        <p>
+            É uma segunda senha, opcional, para situações de coação. Quem entra na conta com ela
+            vê um login normal, mas <strong>todos os cadernos, notas e etiquetas são apagados</strong>
+            e a conta volta a ter só o caderno "Meu caderno", vazio.
+        </p>
+        <div class="alert alert-warning" role="alert">
+            O apagamento não tem volta. Escolha uma senha que você não vá digitar por engano.
+        </div>
+
+        <h2 class="h5 mt-4">Definir ou alterar</h2>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% include 'app/_campos.html' %}
+            <button type="submit" class="btn btn-primary">Salvar senha de estresse</button>
+        </form>
+
+        <h2 class="h5 mt-5">Remover</h2>
+        <p class="text-secondary">A conta volta a ter só a senha normal.</p>
+        <form method="post" action="{% url 'remover_senha_estresse' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">Remover senha de estresse</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

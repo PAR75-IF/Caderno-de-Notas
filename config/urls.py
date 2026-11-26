@@ -13,6 +13,8 @@ urlpatterns = [
     path('entrar/', views.Entrar.as_view(), name='entrar'),
     path('sair/', views.Sair.as_view(), name='sair'),
     path('conta/senha/', views.TrocarSenha.as_view(), name='trocar_senha'),
+    path('conta/senha-estresse/', views.SenhaEstresse.as_view(), name='senha_estresse'),
+    path('conta/senha-estresse/remover/', views.RemoverSenhaEstresse.as_view(), name='remover_senha_estresse'),
     # Cadernos
     path('cadernos/', views.ListarCadernos.as_view(), name='cadernos'),
     path('cadernos/novo/', views.CriarCaderno.as_view(), name='criar_caderno'),
@@ -31,10 +33,8 @@ urlpatterns = [
      # Notas protegidas
     path('notas/<int:pk>/proteger/', views.ProtegerNota.as_view(), name='proteger_nota'),
     path('notas/<int:pk>/abrir/', views.AbrirNota.as_view(), name='abrir_nota'),
-    path('notas/<int:pk>/editar-protegida/', views.EditarNotaProtegida.as_view(),
-         name='editar_nota_protegida'),
-    path('notas/<int:pk>/remover-protecao/', views.RemoverProtecao.as_view(),
-         name='remover_protecao'),
+    path('notas/<int:pk>/editar-protegida/', views.EditarNotaProtegida.as_view(), name='editar_nota_protegida'),
+    path('notas/<int:pk>/remover-protecao/', views.RemoverProtecao.as_view(), name='remover_protecao'),
      # Busca
     path('busca/', views.Buscar.as_view(), name='busca'),
 

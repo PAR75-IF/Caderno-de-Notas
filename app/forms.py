@@ -51,6 +51,46 @@ class FormLogin(EstiloBootstrap, AuthenticationForm):
 class FormTrocarSenha(EstiloBootstrap, PasswordChangeForm):
     """Troca da senha de login (RF05): pede a senha atual e a nova duas vezes."""
 
+    def clean(self):
+        dados = super().clean()  # confere se as duas são iguais e valida a força
+        nova = self.cleaned_data.get('new_password1')
+        # A senha de login não pode ser igual à senha de estresse.
+        if nova and self.user.conferir_senha_estresse(nova):
+            # Mensagem genérica de propósito, para não revelar que existe senha de estresse.
+            self.add_error('new_password1', 'Esta senha não pode ser usada. Escolha outra.')
+        return dados
+
+
+class FormSenhaEstresse(EstiloBootstrap, forms.Form):
+    """Definir ou alterar a senha de estresse (RF16)."""
+
+    senha_estresse = campo_senha('Senha de estresse')
+    confirmacao = campo_senha('Repita a senha de estresse')
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+
+    def clean(self):
+        dados = super().clean()
+        senha = dados.get('senha_estresse')
+        confirmacao = dados.get('confirmacao')
+        if not senha or not confirmacao:
+            return dados
+
+        if senha != confirmacao:
+            raise forms.ValidationError('As duas senhas não são iguais.')
+
+        # Precisa ser diferente da senha normal, senão o sistema não teria
+        # como saber qual das duas a pessoa quis digitar.
+        if self.usuario.check_password(senha):
+            raise forms.ValidationError(
+                'A senha de estresse precisa ser diferente da senha de login.'
+            )
+        # Passa pelos mesmos validadores da senha de login (inclui a entropia).
+        validate_password(senha, self.usuario)
+        return dados
+
 
 # ----------------------------------------------------------------------
 # Ferramentas de senha

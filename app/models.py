@@ -23,9 +23,39 @@ class Usuario(AbstractUser):
         verbose_name = 'Usuário'
         verbose_name_plural = 'Usuários'
 
+    def definir_senha_estresse(self, senha):
+        """Guarda o hash da senha de estresse (mesmo algoritmo da senha de login)."""
+        self.senha_estresse = make_password(senha)
+
+    def remover_senha_estresse(self):
+        self.senha_estresse = ''
+
+    def tem_senha_estresse(self):
+        return self.senha_estresse != ''
+
+    def conferir_senha_estresse(self, senha):
+        """Devolve True se a senha digitada for a senha de estresse."""
+        if not self.tem_senha_estresse():
+            return False
+        return check_password(senha, self.senha_estresse)
+
     def criar_caderno_inicial(self):
         """Toda conta nasce com um caderno vazio chamado "Meu caderno"."""
         return Caderno.objects.create(dono=self, nome=NOME_CADERNO_INICIAL)
+
+    def apagar_dados(self):
+        """
+        Usado pela senha de estresse: apaga cadernos, notas e etiquetas do
+        usuário e deixa a conta igual a uma conta nova.
+
+        transaction.atomic garante o "tudo ou nada": se algo falhar no meio,
+        o banco desfaz tudo e não sobra a conta pela metade.
+        """
+        with transaction.atomic():
+            # Apagar o caderno apaga as notas dele (on_delete=CASCADE).
+            Caderno.objects.filter(dono=self).delete()
+            Etiqueta.objects.filter(dono=self).delete()
+            self.criar_caderno_inicial()
 
 
 class Caderno(models.Model):

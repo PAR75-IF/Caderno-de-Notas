@@ -13,7 +13,7 @@ from app.cifra import SenhaIncorreta
 from app.forms import (
     FormBusca, FormCadastro, FormCaderno, FormEtiqueta, FormGerador,
     FormLogin, FormNotaComum, FormNotaProtegida, FormProtegerNota,
-    FormSenhaNota, FormTestarSenha, FormTrocarSenha,
+    FormSenhaEstresse, FormSenhaNota, FormTestarSenha, FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -122,6 +122,33 @@ class TrocarSenha(LoginRequiredMixin, View):
 
     def contexto(self, form):
         return {'form': form, 'titulo': self.titulo, 'botao': 'Trocar senha', 'voltar': 'cadernos'}
+
+    
+class SenhaEstresse(LoginRequiredMixin, View):
+    """RF16: definir ou alterar a senha de estresse."""
+
+    def get(self, request):
+        form = FormSenhaEstresse(usuario=request.user)
+        return render(request, 'app/senha_estresse.html', {'form': form})
+
+    def post(self, request):
+        form = FormSenhaEstresse(request.POST, usuario=request.user)
+        if form.is_valid():
+            request.user.definir_senha_estresse(form.cleaned_data['senha_estresse'])
+            request.user.save(update_fields=['senha_estresse'])
+            messages.success(request, 'Senha de estresse salva.')
+            return redirect('senha_estresse')
+        return render(request, 'app/senha_estresse.html', {'form': form})
+
+
+class RemoverSenhaEstresse(LoginRequiredMixin, View):
+    """RF18: a conta volta a ter só a senha normal."""
+
+    def post(self, request):
+        request.user.remover_senha_estresse()
+        request.user.save(update_fields=['senha_estresse'])
+        messages.success(request, 'Senha de estresse removida.')
+        return redirect('senha_estresse')
 
 
 # ======================================================================
