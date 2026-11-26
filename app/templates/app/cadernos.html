@@ -3,11 +3,31 @@
 {% block titulo %}Cadernos - Caderno de Notas{% endblock %}
 
 {% block conteudo %}
-{# Versão provisória: na Etapa 13 esta página ganha os cartões e os links. #}
-<h1 class="h3 mb-4">Meus cadernos</h1>
-<ul class="list-group">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Meus cadernos</h1>
+    <a class="btn btn-primary" href="{% url 'criar_caderno' %}">Novo caderno</a>
+</div>
+
+<div class="row g-3">
     {% for caderno in cadernos %}
-        <li class="list-group-item">{{ caderno.nome }} ({{ caderno.total_notas }} nota{{ caderno.total_notas|pluralize }})</li>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h5 card-title">
+                        <a class="stretched-link text-decoration-none" href="
+{% url 'caderno' caderno.pk %}">{{ caderno.nome }}</a>
+                    </h2>
+                    {% if caderno.descricao %}
+                        <p class="card-text text-secondary">{{ caderno.descricao|truncatechars:120 }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-secondary small">
+                    {# pluralize escreve "nota" ou "notas" conforme o número #}
+                    {{ caderno.total_notas }} nota{{ caderno.total_notas|pluralize }}
+                    · criado em {{ caderno.criado_em|date:"d/m/Y" }}
+                </div>
+            </div>
+        </div>
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

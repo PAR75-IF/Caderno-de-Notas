@@ -74,3 +74,30 @@ class FormGerador(EstiloBootstrap, forms.Form):
             for n in range(diceware.MINIMO_PALAVRAS, diceware.MAXIMO_PALAVRAS + 1)
         ],
     )
+
+
+# ----------------------------------------------------------------------
+# Cadernos e etiquetas
+# ----------------------------------------------------------------------
+
+class FormCaderno(EstiloBootstrap, forms.ModelForm):
+    """Criar e editar caderno (RF06). O dono não aparece: é sempre o usuário logado."""
+
+    class Meta:
+        model = Caderno
+        fields = ['nome', 'descricao']
+        widgets = {'descricao': forms.Textarea(attrs={'rows': 3})}
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+
+    def clean_nome(self):
+        nome = self.cleaned_data['nome'].strip()
+        # Nome único por dono. exclude(pk=...) ignora o próprio caderno na edição.
+        repetido = Caderno.objects.filter(
+            dono=self.usuario, nome__iexact=nome,
+        ).exclude(pk=self.instance.pk).exists()
+        if repetido:
+            raise forms.ValidationError('Você já tem um caderno com este nome.')
+        return nome

@@ -1,0 +1,22 @@
+{% extends 'app/base.html' %}
+{# Confirmação de exclusão: abrir esta página (GET) não apaga nada; só o botão (POST) apaga #}
+
+{% block titulo %}{{ titulo }} - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-body">
+                <h1 class="h4 card-title">{{ pergunta }}</h1>
+                <p class="card-text">{{ aviso }}</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Sim, excluir</button>
+                    <a class="btn btn-link" href="{% url voltar %}">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'app/base.html' %}
+
+{% block titulo %}{{ caderno.nome }} - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+<nav aria-label="Caminho">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cadernos' %}">Cadernos</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ caderno.nome }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2
+mb-3">
+    <div>
+        <h1 class="h3 mb-1">{{ caderno.nome }}</h1>
+        {% if caderno.descricao %}<p class="text-secondary mb-0">{{ caderno.descricao }}</p>{% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        {# ?caderno=... deixa este caderno já escolhido no formulário da nota #}
+        {# <a class="btn btn-primary" href="{% url 'criar_nota' %}?caderno={{ caderno.pk }}">Nova nota</a> #}
+        <a class="btn btn-outline-secondary" href="{% url 'editar_caderno' caderno.pk %}">Editar</a>
+        <a class="btn btn-outline-danger" href="{% url 'excluir_caderno' caderno.pk %}">Excluir</a>
+    </div>
+</div>
+
+{% if notas %}
+    {# {% include 'app/_lista_notas.html' %} #}
+{% else %}
+    <p class="text-secondary">Este caderno ainda não tem notas.</p>
+{% endif %}
+{% endblock %}

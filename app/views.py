@@ -9,9 +9,9 @@ from django.views import View
 from django.views.decorators.cache import never_cache
 from app import entropia
 from app import diceware, entropia
-
 from app.forms import (
-    FormCadastro, FormGerador, FormLogin, FormTestarSenha, FormTrocarSenha,
+    FormCadastro, FormCaderno, FormGerador, FormLogin, FormTestarSenha,
+    FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -19,6 +19,19 @@ from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 # tem dois backends, o Django exige dizer qual deles "assina" a sessão.
 BACKEND_PADRAO = 'django.contrib.auth.backends.ModelBackend'
 
+
+def notas_do_usuario(usuario):
+    """
+    Ponto de partida de toda listagem de notas: só as do usuário.
+    select_related e prefetch_related trazem caderno, tipo e etiquetas em
+    poucas consultas, em vez de uma consulta por nota.
+    """
+    return (
+        Nota.objects
+        .filter(caderno__dono=usuario)
+        .select_related('caderno', 'notacomum', 'notaprotegida')
+        .prefetch_related('etiquetas')
+    )
 
 # ======================================================================
 # Contas e acesso
@@ -123,6 +136,91 @@ class ListarCadernos(LoginRequiredMixin, View):
             .annotate(total_notas=Count('notas'))
         )
         return render(request, 'app/cadernos.html', {'cadernos': cadernos})
+
+
+class CriarCaderno(LoginRequiredMixin, View):
+
+    def get(self, request):
+        form = FormCaderno(usuario=request.user)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def post(self, request):
+        form = FormCaderno(request.POST, usuario=request.user)
+        if form.is_valid():
+            caderno = form.save(commit=False)  # monta o objeto sem gravar ainda
+            caderno.dono = request.user        # o dono vem da sessão, nunca do formulário
+            caderno.save()
+            messages.success(request, 'Caderno criado.')
+            return redirect('caderno', pk=caderno.pk)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def contexto(self, form):
+        return {'form': form, 'titulo': 'Novo caderno', 'botao': 'Criar caderno', 'voltar': 'cadernos'}
+
+
+class VerCaderno(LoginRequiredMixin, View):
+    """Lista as notas de um caderno (RF07 da seção de notas)."""
+
+    def get(self, request, pk):
+        caderno = get_object_or_404(Caderno, pk=pk, dono=request.user)
+        notas = notas_do_usuario(request.user).filter(caderno=caderno)
+        return render(request, 'app/caderno.html', {'caderno': caderno, 'notas': notas})
+
+
+class EditarCaderno(LoginRequiredMixin, View):
+
+    def get(self, request, pk):
+        caderno = get_object_or_404(Caderno, pk=pk, dono=request.user)
+        form = FormCaderno(instance=caderno, usuario=request.user)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def post(self, request, pk):
+        caderno = get_object_or_404(Caderno, pk=pk, dono=request.user)
+        form = FormCaderno(request.POST, instance=caderno, usuario=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Caderno atualizado.')
+            return redirect('caderno', pk=caderno.pk)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def contexto(self, form):
+        return {'form': form, 'titulo': 'Editar caderno', 'botao': 'Salvar', 'voltar': 'cadernos'}
+
+
+class ExcluirCaderno(LoginRequiredMixin, View):
+    """O get só mostra a confirmação (com o número de notas). Quem apaga é o post."""
+
+    def get(self, request, pk):
+        caderno = get_object_or_404(Caderno, pk=pk, dono=request.user)
+        if self.eh_o_ultimo(request.user):
+            messages.error(request, 'Este é o seu único caderno e não pode ser excluído.')
+            return redirect('cadernos')
+        total = caderno.notas.count()
+        if total == 0:
+            aviso = 'Este caderno não tem notas.'
+        elif total == 1:
+            aviso = 'A nota deste caderno também será apagada, mesmo se for protegida.'
+        else:
+            aviso = f'As {total} notas deste caderno também serão apagadas, inclusive as protegidas.'
+        return render(request, 'app/confirmar_exclusao.html', {
+            'titulo': 'Excluir caderno',
+            'pergunta': f'Excluir o caderno "{caderno.nome}"?',
+            'aviso': aviso,
+            'voltar': 'cadernos',
+        })
+
+    def post(self, request, pk):
+        caderno = get_object_or_404(Caderno, pk=pk, dono=request.user)
+        if self.eh_o_ultimo(request.user):
+            messages.error(request, 'Este é o seu único caderno e não pode ser excluído.')
+            return redirect('cadernos')
+        caderno.delete()  # as notas vão junto (on_delete=CASCADE)
+        messages.success(request, 'Caderno excluído.')
+        return redirect('cadernos')
+
+    def eh_o_ultimo(self, usuario):
+        # Toda nota precisa de um caderno, então a conta sempre mantém pelo menos um.
+        return Caderno.objects.filter(dono=usuario).count() <= 1
 
 
     # ======================================================================
