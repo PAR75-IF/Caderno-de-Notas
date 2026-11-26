@@ -122,3 +122,33 @@ class FormEtiqueta(EstiloBootstrap, forms.ModelForm):
         if repetida:
             raise forms.ValidationError('Você já tem uma etiqueta com este nome.')
         return nome
+
+
+# ----------------------------------------------------------------------
+# Notas
+# ----------------------------------------------------------------------
+
+class FormNotaBase(EstiloBootstrap, forms.ModelForm):
+    """
+    Parte comum aos formulários de nota: limita as opções de caderno e de
+    etiquetas ao que pertence ao usuário. Se alguém forjar o envio com o id
+    de um caderno de outra pessoa, o formulário recusa.
+    """
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['caderno'].queryset = Caderno.objects.filter(dono=usuario)
+        self.fields['etiquetas'].queryset = Etiqueta.objects.filter(dono=usuario)
+        self.fields['etiquetas'].help_text = 'Opcional. Novas etiquetas são criadas no menu Etiquetas.'
+
+
+class FormNotaComum(FormNotaBase):
+    """Criar e editar nota comum."""
+
+    class Meta:
+        model = NotaComum
+        fields = ['titulo', 'conteudo', 'caderno', 'etiquetas']
+        widgets = {
+            'conteudo': forms.Textarea(attrs={'rows': 10}),
+            'etiquetas': forms.CheckboxSelectMultiple,
+        }

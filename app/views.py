@@ -11,7 +11,7 @@ from app import entropia
 from app import diceware, entropia
 from app.forms import (
     FormCadastro, FormCaderno, FormEtiqueta, FormGerador, FormLogin,
-    FormTestarSenha, FormTrocarSenha,
+    FormNotaComum, FormTestarSenha, FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -341,3 +341,98 @@ class ExcluirEtiqueta(LoginRequiredMixin, View):
         etiqueta.delete()
         messages.success(request, 'Etiqueta excluída.')
         return redirect('etiquetas')
+
+
+# ======================================================================
+# Notas comuns
+# ======================================================================
+
+class CriarNota(LoginRequiredMixin, View):
+
+    def get(self, request):
+        # Se veio de dentro de um caderno (?caderno=3), ele já aparece
+        # selecionado. O filtro por dono impede sugerir caderno de outra pessoa.
+        inicial = {}
+        caderno = Caderno.objects.filter(
+            dono=request.user, pk=self.numero(request.GET.get('caderno')),
+        ).first()
+        if caderno:
+            inicial['caderno'] = caderno
+        form = FormNotaComum(usuario=request.user, initial=inicial)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def post(self, request):
+        form = FormNotaComum(request.POST, usuario=request.user)
+        if form.is_valid():
+            nota = form.save()  # salva a nota e a ligação com as etiquetas
+            messages.success(request, 'Nota criada.')
+            return redirect('nota', pk=nota.pk)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def contexto(self, form):
+        return {'form': form, 'titulo': 'Nova nota', 'botao': 'Criar nota', 'voltar': 'cadernos'}
+
+    def numero(self, texto):
+        """Converte o parâmetro da URL em inteiro; qualquer coisa inválida vira None."""
+        try:
+            return int(texto)
+        except (TypeError, ValueError):
+            return None
+
+
+class VerNota(LoginRequiredMixin, View):
+    """Mostra uma nota comum. Se a nota for protegida, manda para a tela da senha."""
+
+    def get(self, request, pk):
+        nota = get_object_or_404(notas_do_usuario(request.user), pk=pk)
+        if nota.protegida:
+            return redirect('abrir_nota', pk=pk)
+        return render(request, 'app/nota.html', {'nota': nota.notacomum})
+
+
+class EditarNota(LoginRequiredMixin, View):
+
+    def get(self, request, pk):
+        nota = self.buscar(request, pk)
+        form = FormNotaComum(instance=nota, usuario=request.user)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def post(self, request, pk):
+        nota = self.buscar(request, pk)
+        form = FormNotaComum(request.POST, instance=nota, usuario=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Nota atualizada.')
+            return redirect('nota', pk=nota.pk)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def buscar(self, request, pk):
+        # Procura na tabela de notas comuns: uma nota protegida dá 404 aqui.
+        return get_object_or_404(NotaComum, pk=pk, caderno__dono=request.user)
+
+    def contexto(self, form):
+        return {'form': form, 'titulo': 'Editar nota', 'botao': 'Salvar', 'voltar': 'cadernos'}
+
+
+class ExcluirNota(LoginRequiredMixin, View):
+    """
+    RF09: vale para notas comuns e protegidas. Excluir uma nota protegida
+    não pede a senha dela: a senha protege a leitura, e o dono logado
+    sempre pode apagar o que é dele (como já acontece ao excluir o caderno).
+    """
+
+    def get(self, request, pk):
+        nota = get_object_or_404(Nota, pk=pk, caderno__dono=request.user)
+        return render(request, 'app/confirmar_exclusao.html', {
+            'titulo': 'Excluir nota',
+            'pergunta': f'Excluir a nota "{nota.titulo}"?',
+            'aviso': 'Esta ação não pode ser desfeita.',
+            'voltar': 'cadernos',
+        })
+
+    def post(self, request, pk):
+        nota = get_object_or_404(Nota, pk=pk, caderno__dono=request.user)
+        caderno_pk = nota.caderno_id
+        nota.delete()  # apaga a linha mãe e a linha da filha
+        messages.success(request, 'Nota excluída.')
+        return redirect('caderno', pk=caderno_pk)

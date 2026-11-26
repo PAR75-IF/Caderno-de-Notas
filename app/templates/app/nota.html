@@ -1,0 +1,37 @@
+{% extends 'app/base.html' %}
+
+{% block titulo %}{{ nota.titulo }} - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+<nav aria-label="Caminho">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'cadernos' %}">Cadernos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'caderno' nota.caderno.pk %}">{{ nota.caderno.nome }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ nota.titulo }}</li>
+    </ol>
+</nav>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2
+mb-3">
+    <h1 class="h3 mb-0">{{ nota.titulo }}</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" href="{% url 'editar_nota' nota.pk %}">Editar</a>
+        {# <a class="btn btn-outline-dark" href="{% url 'proteger_nota' nota.pk %}">Proteger com senha</a> #}
+        <a class="btn btn-outline-danger" href="{% url 'excluir_nota' nota.pk %}">Excluir</a>
+    </div>
+</div>
+
+<p class="mb-3">
+    {% for etiqueta in nota.etiquetas.all %}
+        <span class="badge etiqueta">{{ etiqueta.nome }}</span>
+    {% endfor %}
+</p>
+
+{# O Django escapa o conteúdo automaticamente: HTML digitado na nota aparece como texto #}
+<div class="card">
+    <div class="card-body conteudo-nota">{{ nota.conteudo }}</div>
+</div>
+
+<p class="text-secondary small mt-3">
+    Criada em {{ nota.criada_em|date:"d/m/Y H:i" }} · atualizada em {{ nota.atualizada_em|date:"d/m/Y H:i" }}
+</p>
+{% endblock %}
