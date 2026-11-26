@@ -152,3 +152,43 @@ class FormNotaComum(FormNotaBase):
             'conteudo': forms.Textarea(attrs={'rows': 10}),
             'etiquetas': forms.CheckboxSelectMultiple,
         }
+
+
+# ----------------------------------------------------------------------
+# Busca
+# ----------------------------------------------------------------------
+
+class FormBusca(EstiloBootstrap, forms.Form):
+    """Busca por texto com filtros (RF10 e RF11). Todos os campos são opcionais."""
+    TIPOS = [('', 'Todos os tipos'), ('comum', 'Comuns'), ('protegida', 'Protegidas')]
+
+    texto = forms.CharField(label='Texto', required=False)
+    caderno = forms.ModelChoiceField(
+        label='Caderno', required=False,
+        queryset=Caderno.objects.none(), empty_label='Todos os cadernos',
+    )
+    etiqueta = forms.ModelChoiceField(
+        label='Etiqueta', required=False,
+        queryset=Etiqueta.objects.none(), empty_label='Todas as etiquetas',
+    )
+    criada_de = forms.DateField(
+        label='Criada a partir de', required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    criada_ate = forms.DateField(
+        label='Criada até', required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    tipo = forms.ChoiceField(label='Tipo de nota', required=False, choices=TIPOS)
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['caderno'].queryset = Caderno.objects.filter(dono=usuario)
+        self.fields['etiqueta'].queryset = Etiqueta.objects.filter(dono=usuario)
+
+    def clean(self):
+        dados = super().clean()
+        de, ate = dados.get('criada_de'), dados.get('criada_ate')
+        if de and ate and de > ate:
+            raise forms.ValidationError('A data inicial não pode ser depois da data final.')
+        return dados

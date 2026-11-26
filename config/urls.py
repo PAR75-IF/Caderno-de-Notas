@@ -28,6 +28,8 @@ urlpatterns = [
     path('notas/<int:pk>/', views.VerNota.as_view(), name='nota'),
     path('notas/<int:pk>/editar/', views.EditarNota.as_view(), name='editar_nota'),
     path('notas/<int:pk>/excluir/', views.ExcluirNota.as_view(), name='excluir_nota'),
+     # Busca
+    path('busca/', views.Buscar.as_view(), name='busca'),
 
     # Ferramentas de senha (sem login)
     path('ferramentas/passphrase/', views.GerarPassphrase.as_view(), name='passphrase'),

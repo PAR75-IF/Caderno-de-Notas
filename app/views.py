@@ -10,8 +10,8 @@ from django.views.decorators.cache import never_cache
 from app import entropia
 from app import diceware, entropia
 from app.forms import (
-    FormCadastro, FormCaderno, FormEtiqueta, FormGerador, FormLogin,
-    FormNotaComum, FormTestarSenha, FormTrocarSenha,
+    FormBusca, FormCadastro, FormCaderno, FormEtiqueta, FormGerador,
+    FormLogin, FormNotaComum, FormTestarSenha, FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -436,3 +436,46 @@ class ExcluirNota(LoginRequiredMixin, View):
         nota.delete()  # apaga a linha mãe e a linha da filha
         messages.success(request, 'Nota excluída.')
         return redirect('caderno', pk=caderno_pk)
+
+
+# ======================================================================
+# Busca (RF10 e RF11)
+# ======================================================================
+
+class Buscar(LoginRequiredMixin, View):
+    """
+    Os filtros vão na URL (GET), porque buscar não altera nada.
+    Cada filtro preenchido acrescenta um .filter(), e todos se combinam (E).
+    A busca por texto NÃO enxerga dentro das notas protegidas: o conteúdo
+    delas está cifrado e o sistema não tem a senha.
+    """
+
+    def get(self, request):
+        form = FormBusca(request.GET, usuario=request.user)
+        notas = notas_do_usuario(request.user)
+
+        if form.is_valid():
+            dados = form.cleaned_data
+            if dados['texto']:
+                # Q permite o "OU": texto no título OU no conteúdo da nota comum.
+                # icontains = contém, sem diferenciar maiúsculas de minúsculas.
+                notas = notas.filter(
+                    Q(titulo__icontains=dados['texto'])
+                    | Q(notacomum__conteudo__icontains=dados['texto'])
+                )
+            if dados['caderno']:
+                notas = notas.filter(caderno=dados['caderno'])
+            if dados['etiqueta']:
+                notas = notas.filter(etiquetas=dados['etiqueta'])
+            if dados['criada_de']:
+                notas = notas.filter(criada_em__date__gte=dados['criada_de'])
+            if dados['criada_ate']:
+                notas = notas.filter(criada_em__date__lte=dados['criada_ate'])
+            if dados['tipo'] == 'comum':
+                notas = notas.filter(notacomum__isnull=False)
+            elif dados['tipo'] == 'protegida':
+                notas = notas.filter(notaprotegida__isnull=False)
+        else:
+            notas = notas.none()  # filtro inválido: não mostra nada, só o erro
+
+        return render(request, 'app/busca.html', {'form': form, 'notas': notas})
