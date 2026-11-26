@@ -1,0 +1,46 @@
+{% extends 'app/base.html' %}
+
+{% block titulo %}Etiquetas - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+<h1 class="h3 mb-4">Minhas etiquetas</h1>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        {% if etiquetas %}
+            <table class="table align-middle">
+                <thead>
+                    <tr><th>Nome</th><th>Notas</th><th class="text-end">Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for etiqueta in etiquetas %}
+                        <tr>
+                            <td><span class="badge etiqueta">{{ etiqueta.nome }}</span></td>
+                            <td>{{ etiqueta.total_notas }}</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary" href="{% url 'editar_etiqueta' etiqueta.pk %}">Editar</a>
+                                <a class="btn btn-sm btn-outline-danger" href="{% url 'excluir_etiqueta' etiqueta.pk %}">Excluir</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-secondary">Você ainda não criou etiquetas.</p>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 card-title">Nova etiqueta</h2>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% include 'app/_campos.html' %}
+                    <button type="submit" class="btn btn-primary">Criar etiqueta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

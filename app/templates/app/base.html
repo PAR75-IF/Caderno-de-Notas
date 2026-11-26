@@ -25,7 +25,7 @@
             <ul class="navbar-nav me-auto">
                 {% if user.is_authenticated %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'cadernos' %}">Cadernos</a></li>
-                    {# <li class="nav-item"><a class="nav-link" href="{% url 'etiquetas' %}">Etiquetas</a></li> #}
+                     <li class="nav-item"><a class="nav-link" href="{% url 'etiquetas' %}">Etiquetas</a></li> 
                     {# <li class="nav-item"><a class="nav-link" href="{% url 'busca' %}">Busca</a></li> #}
                 {% endif %}
                <li class="nav-item"><a class="nav-link" href="{% url 'passphrase' %}">Gerar passphrase</a></li> 

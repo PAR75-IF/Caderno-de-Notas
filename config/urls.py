@@ -19,6 +19,10 @@ urlpatterns = [
     path('cadernos/<int:pk>/', views.VerCaderno.as_view(), name='caderno'),
     path('cadernos/<int:pk>/editar/', views.EditarCaderno.as_view(), name='editar_caderno'),
     path('cadernos/<int:pk>/excluir/', views.ExcluirCaderno.as_view(), name='excluir_caderno'),
+    # Etiquetas
+    path('etiquetas/', views.ListarEtiquetas.as_view(), name='etiquetas'),
+    path('etiquetas/<int:pk>/editar/', views.EditarEtiqueta.as_view(), name='editar_etiqueta'),
+    path('etiquetas/<int:pk>/excluir/', views.ExcluirEtiqueta.as_view(), name='excluir_etiqueta'),
 
     # Ferramentas de senha (sem login)
     path('ferramentas/passphrase/', views.GerarPassphrase.as_view(), name='passphrase'),

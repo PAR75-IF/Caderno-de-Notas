@@ -101,3 +101,24 @@ class FormCaderno(EstiloBootstrap, forms.ModelForm):
         if repetido:
             raise forms.ValidationError('Você já tem um caderno com este nome.')
         return nome
+
+    
+class FormEtiqueta(EstiloBootstrap, forms.ModelForm):
+    """Criar e editar etiqueta (RF07)."""
+
+    class Meta:
+        model = Etiqueta
+        fields = ['nome']
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+
+    def clean_nome(self):
+        nome = self.cleaned_data['nome'].strip()
+        repetida = Etiqueta.objects.filter(
+            dono=self.usuario, nome__iexact=nome,
+        ).exclude(pk=self.instance.pk).exists()
+        if repetida:
+            raise forms.ValidationError('Você já tem uma etiqueta com este nome.')
+        return nome

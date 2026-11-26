@@ -10,8 +10,8 @@ from django.views.decorators.cache import never_cache
 from app import entropia
 from app import diceware, entropia
 from app.forms import (
-    FormCadastro, FormCaderno, FormGerador, FormLogin, FormTestarSenha,
-    FormTrocarSenha,
+    FormCadastro, FormCaderno, FormEtiqueta, FormGerador, FormLogin,
+    FormTestarSenha, FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -274,3 +274,70 @@ class GerarPassphrase(View):
             'bits': bits,
             'forca': entropia.classificar_forca(bits),
         })
+
+
+# ======================================================================
+# Etiquetas (RF07)
+# ======================================================================
+
+class ListarEtiquetas(LoginRequiredMixin, View):
+    """Lista as etiquetas e, na mesma tela, tem o formulário para criar outra."""
+
+    def get(self, request):
+        return self.mostrar(request, FormEtiqueta(usuario=request.user))
+
+    def post(self, request):
+        form = FormEtiqueta(request.POST, usuario=request.user)
+        if form.is_valid():
+            etiqueta = form.save(commit=False)
+            etiqueta.dono = request.user
+            etiqueta.save()
+            messages.success(request, 'Etiqueta criada.')
+            return redirect('etiquetas')
+        return self.mostrar(request, form)
+
+    def mostrar(self, request, form):
+        etiquetas = (
+            Etiqueta.objects
+            .filter(dono=request.user)
+            .annotate(total_notas=Count('notas'))
+        )
+        return render(request, 'app/etiquetas.html', {'etiquetas': etiquetas, 'form': form})
+
+
+class EditarEtiqueta(LoginRequiredMixin, View):
+
+    def get(self, request, pk):
+        etiqueta = get_object_or_404(Etiqueta, pk=pk, dono=request.user)
+        form = FormEtiqueta(instance=etiqueta, usuario=request.user)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def post(self, request, pk):
+        etiqueta = get_object_or_404(Etiqueta, pk=pk, dono=request.user)
+        form = FormEtiqueta(request.POST, instance=etiqueta, usuario=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Etiqueta atualizada.')
+            return redirect('etiquetas')
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def contexto(self, form):
+        return {'form': form, 'titulo': 'Editar etiqueta', 'botao': 'Salvar', 'voltar': 'etiquetas'}
+
+
+class ExcluirEtiqueta(LoginRequiredMixin, View):
+
+    def get(self, request, pk):
+        etiqueta = get_object_or_404(Etiqueta, pk=pk, dono=request.user)
+        return render(request, 'app/confirmar_exclusao.html', {
+            'titulo': 'Excluir etiqueta',
+            'pergunta': f'Excluir a etiqueta "{etiqueta.nome}"?',
+            'aviso': 'As notas que usam esta etiqueta não são apagadas, só perdem a etiqueta.',
+            'voltar': 'etiquetas',
+        })
+
+    def post(self, request, pk):
+        etiqueta = get_object_or_404(Etiqueta, pk=pk, dono=request.user)
+        etiqueta.delete()
+        messages.success(request, 'Etiqueta excluída.')
+        return redirect('etiquetas')
