@@ -1,0 +1,19 @@
+{% extends 'app/base.html' %}
+{# Página genérica de formulário: a view manda o título, o texto do botão e para onde voltar #}
+
+{% block titulo %}{{ titulo }} - Caderno de Notas{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="h3 mb-4">{{ titulo }}</h1>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% include 'app/_campos.html' %}
+            <button type="submit" class="btn btn-primary">{{ botao }}
+</button>
+            <a class="btn btn-link" href="{% url voltar %}">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

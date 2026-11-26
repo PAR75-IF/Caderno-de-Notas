@@ -11,7 +11,7 @@ from app import entropia
 from app import diceware, entropia
 
 from app.forms import (
-    FormCadastro, FormGerador, FormLogin, FormTestarSenha,
+    FormCadastro, FormGerador, FormLogin, FormTestarSenha, FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -83,6 +83,30 @@ class Sair(View):
     def post(self, request):
         logout(request)
         return redirect('entrar')
+
+
+class TrocarSenha(LoginRequiredMixin, View):
+    """RF05."""
+
+    titulo = 'Trocar senha de login'
+
+    def get(self, request):
+        form = FormTrocarSenha(request.user)
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def post(self, request):
+        form = FormTrocarSenha(request.user, request.POST)
+        if form.is_valid():
+            usuario = form.save()
+            # Trocar a senha invalida as sessões antigas. Esta linha mantém
+            # a sessão atual válida, para o usuário continuar logado.
+            update_session_auth_hash(request, usuario)
+            messages.success(request, 'Senha de login alterada.')
+            return redirect('cadernos')
+        return render(request, 'app/formulario.html', self.contexto(form))
+
+    def contexto(self, form):
+        return {'form': form, 'titulo': self.titulo, 'botao': 'Trocar senha', 'voltar': 'cadernos'}
 
 
 # ======================================================================

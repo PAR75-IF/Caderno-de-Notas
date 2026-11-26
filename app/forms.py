@@ -48,6 +48,10 @@ class FormLogin(EstiloBootstrap, AuthenticationForm):
     """Login (RF03). O AuthenticationForm chama authenticate(), que consulta os backends."""
 
 
+class FormTrocarSenha(EstiloBootstrap, PasswordChangeForm):
+    """Troca da senha de login (RF05): pede a senha atual e a nova duas vezes."""
+
+
 # ----------------------------------------------------------------------
 # Ferramentas de senha
 # ----------------------------------------------------------------------

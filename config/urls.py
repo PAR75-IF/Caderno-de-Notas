@@ -12,6 +12,7 @@ urlpatterns = [
     path('cadastro/', views.Cadastrar.as_view(), name='cadastro'),
     path('entrar/', views.Entrar.as_view(), name='entrar'),
     path('sair/', views.Sair.as_view(), name='sair'),
+    path('conta/senha/', views.TrocarSenha.as_view(), name='trocar_senha'),
     # Cadernos
     path('cadernos/', views.ListarCadernos.as_view(), name='cadernos'),
 
