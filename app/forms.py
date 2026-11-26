@@ -192,3 +192,70 @@ class FormBusca(EstiloBootstrap, forms.Form):
         if de and ate and de > ate:
             raise forms.ValidationError('A data inicial não pode ser depois da data final.')
         return dados
+
+
+# ----------------------------------------------------------------------
+# Notas protegidas
+# ----------------------------------------------------------------------
+
+class FormNotaProtegida(FormNotaBase):
+    """
+    Editar nota protegida (RF14). "conteudo" e "senha" não são campos do
+    model: o conteúdo é cifrado pela view antes de salvar, e a senha serve
+    só para conferir e cifrar (nunca é guardada).
+    """
+
+    conteudo = forms.CharField(
+        label='Conteúdo', required=False,
+        widget=forms.Textarea(attrs={'rows': 10}),
+    )
+    senha = campo_senha(
+        'Senha da nota',
+        'Digite a senha da nota de novo para salvar as alterações.',
+    )
+
+    class Meta:
+        model = NotaProtegida
+        fields = ['titulo', 'caderno', 'etiquetas']
+        widgets = {'etiquetas': forms.CheckboxSelectMultiple}
+
+    # Ordem em que os campos aparecem na tela
+    field_order = ['titulo', 'conteudo', 'caderno', 'etiquetas', 'senha']
+
+
+class FormSenhaNota(EstiloBootstrap, forms.Form):
+    """Pede a senha da nota (abrir, editar e remover a proteção)."""
+
+    senha = campo_senha('Senha da nota')
+
+
+class FormProtegerNota(EstiloBootstrap, forms.Form):
+    """Escolher a senha ao proteger uma nota (RF12)."""
+
+    senha = campo_senha('Senha da nota')
+    confirmacao = campo_senha('Repita a senha')
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+
+    def clean(self):
+        dados = super().clean()
+        senha = dados.get('senha')
+        confirmacao = dados.get('confirmacao')
+        if not senha or not confirmacao:
+            return dados
+
+        # Digitar duas vezes evita cifrar a nota com um erro de digitação
+        # (seria uma senha que ninguém sabe = nota perdida).
+        if senha != confirmacao:
+            raise forms.ValidationError('As duas senhas não são iguais.')
+
+        # Se fosse igual à senha de login, quem descobrisse uma teria as duas.
+        if self.usuario.check_password(senha):
+            raise forms.ValidationError(
+                'A senha da nota precisa ser diferente da senha de login.'
+            )
+
+        validate_password(senha, self.usuario)  # mesma régua de força do login
+        return dados

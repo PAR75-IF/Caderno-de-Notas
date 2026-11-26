@@ -2,6 +2,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
 from django.utils import timezone
+from app import cifra
 
 NOME_CADERNO_INICIAL = 'Meu caderno'
 
@@ -114,6 +115,25 @@ class NotaComum(Nota):
     class Meta:
         verbose_name = 'Nota comum'
         verbose_name_plural = 'Notas comuns'
+    def proteger(self, senha):
+        """
+        Transforma esta nota comum em protegida, mantendo a mesma linha na
+        tabela mãe (mesmo id, título, etiquetas e data de criação).
+        Devolve a NotaProtegida criada.
+        """
+        dados = cifra.cifrar(self.conteudo, senha)
+        with transaction.atomic():
+            # 1) Cria a linha na tabela app_notaprotegida apontando para a
+            #    mesma linha mãe. save_base(raw=True) grava só a tabela da
+            #    filha, sem mexer na mãe.
+            protegida = NotaProtegida(nota_ptr_id=self.pk, **dados)
+            protegida.save_base(raw=True)
+            # 2) Apaga a linha da tabela app_notacomum (é aqui que o texto
+            #    original sai do banco). keep_parents=True preserva a mãe.
+            self.delete(keep_parents=True)
+            # 3) Atualiza a data de alteração na mãe.
+            Nota.objects.filter(pk=protegida.pk).update(atualizada_em=timezone.now())
+        return NotaProtegida.objects.get(pk=protegida.pk)
 
 
 class NotaProtegida(Nota):
@@ -132,3 +152,33 @@ class NotaProtegida(Nota):
     class Meta:
         verbose_name = 'Nota protegida'
         verbose_name_plural = 'Notas protegidas'
+        
+    def decifrar(self, senha):
+        """Devolve o texto original. Levanta cifra.SenhaIncorreta se a senha estiver errada."""
+        return cifra.decifrar(
+            self.conteudo_cifrado, senha, self.salt, self.nonce, self.iteracoes,
+        )
+
+    def gravar_conteudo(self, texto, senha):
+        """
+        Cifra o texto e preenche os campos (sem salvar no banco).
+        Gera salt e nonce novos a cada chamada.
+        """
+        dados = cifra.cifrar(texto, senha)
+        self.conteudo_cifrado = dados['conteudo_cifrado']
+        self.salt = dados['salt']
+        self.nonce = dados['nonce']
+        self.iteracoes = dados['iteracoes']
+
+    def remover_protecao(self, senha):
+        """
+        Caminho inverso do proteger: decifra e volta a ser NotaComum.
+        Levanta cifra.SenhaIncorreta se a senha estiver errada (e aí nada muda).
+        """
+        texto = self.decifrar(senha)
+        with transaction.atomic():
+            comum = NotaComum(nota_ptr_id=self.pk, conteudo=texto)
+            comum.save_base(raw=True)
+            self.delete(keep_parents=True)
+            Nota.objects.filter(pk=comum.pk).update(atualizada_em=timezone.now())
+        return NotaComum.objects.get(pk=comum.pk)

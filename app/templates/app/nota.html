@@ -15,7 +15,7 @@ mb-3">
     <h1 class="h3 mb-0">{{ nota.titulo }}</h1>
     <div class="d-flex gap-2">
         <a class="btn btn-primary" href="{% url 'editar_nota' nota.pk %}">Editar</a>
-        {# <a class="btn btn-outline-dark" href="{% url 'proteger_nota' nota.pk %}">Proteger com senha</a> #}
+         <a class="btn btn-outline-dark" href="{% url 'proteger_nota' nota.pk %}">Proteger com senha</a> 
         <a class="btn btn-outline-danger" href="{% url 'excluir_nota' nota.pk %}">Excluir</a>
     </div>
 </div>

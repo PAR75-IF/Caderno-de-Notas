@@ -9,9 +9,11 @@ from django.views import View
 from django.views.decorators.cache import never_cache
 from app import entropia
 from app import diceware, entropia
+from app.cifra import SenhaIncorreta
 from app.forms import (
     FormBusca, FormCadastro, FormCaderno, FormEtiqueta, FormGerador,
-    FormLogin, FormNotaComum, FormTestarSenha, FormTrocarSenha,
+    FormLogin, FormNotaComum, FormNotaProtegida, FormProtegerNota,
+    FormSenhaNota, FormTestarSenha, FormTrocarSenha,
 )
 from app.models import Caderno, Etiqueta, Nota, NotaComum, NotaProtegida
 
@@ -479,3 +481,137 @@ class Buscar(LoginRequiredMixin, View):
             notas = notas.none()  # filtro inválido: não mostra nada, só o erro
 
         return render(request, 'app/busca.html', {'form': form, 'notas': notas})
+
+
+# ======================================================================
+# Notas protegidas (RF12 a RF15)
+#
+# never_cache manda o navegador não guardar cópia destas páginas. Sem isso,
+# o botão "voltar" poderia mostrar uma nota decifrada depois do logout.
+# ======================================================================
+
+@method_decorator(never_cache, name='dispatch')
+class ProtegerNota(LoginRequiredMixin, View):
+    """RF12: cifra o conteúdo de uma nota comum. O texto original sai do banco."""
+
+    def get(self, request, pk):
+        nota = get_object_or_404(NotaComum, pk=pk, caderno__dono=request.user)
+        form = FormProtegerNota(usuario=request.user)
+        return render(request, 'app/proteger_nota.html', {'form': form, 'nota': nota})
+
+    def post(self, request, pk):
+        nota = get_object_or_404(NotaComum, pk=pk, caderno__dono=request.user)
+        form = FormProtegerNota(request.POST, usuario=request.user)
+        if form.is_valid():
+            nota.proteger(form.cleaned_data['senha'])
+            messages.success(request, 'Nota protegida. Guarde bem a senha: sem ela a nota não abre.')
+            return redirect('caderno', pk=nota.caderno_id)
+        return render(request, 'app/proteger_nota.html', {'form': form, 'nota': nota})
+
+
+@method_decorator(never_cache, name='dispatch')
+class AbrirNota(LoginRequiredMixin, View):
+    """RF13: pede a senha e, se estiver certa, mostra o conteúdo decifrado."""
+
+    def get(self, request, pk):
+        nota = get_object_or_404(NotaProtegida, pk=pk, caderno__dono=request.user)
+        return render(request, 'app/abrir_nota.html', {'nota': nota, 'form': FormSenhaNota()})
+
+    def post(self, request, pk):
+        nota = get_object_or_404(NotaProtegida, pk=pk, caderno__dono=request.user)
+        form = FormSenhaNota(request.POST)
+        if form.is_valid():
+            try:
+                conteudo = nota.decifrar(form.cleaned_data['senha'])
+            except SenhaIncorreta:
+                form.add_error('senha', 'Senha incorreta.')
+            else:
+                # O texto decifrado existe só nesta resposta: não vai para
+                # o banco nem para a sessão.
+                return render(request, 'app/abrir_nota.html', {
+                    'nota': nota, 'conteudo': conteudo, 'aberta': True,
+                })
+        return render(request, 'app/abrir_nota.html', {'nota': nota, 'form': form})
+
+
+@method_decorator(never_cache, name='dispatch')
+class EditarNotaProtegida(LoginRequiredMixin, View):
+    """
+    RF14, em duas etapas:
+      1. "abrir": a pessoa digita a senha e recebe o formulário com o
+         conteúdo decifrado;
+      2. "salvar": ela envia o formulário com a senha de novo. O sistema
+         primeiro decifra o conteúdo ATUAL com essa senha; só se der certo
+         cifra o conteúdo novo. Assim um erro de digitação não troca a
+         senha da nota sem querer, e a senha nunca precisa ser guardada
+         entre uma etapa e outra.
+    """
+
+    modelo = 'app/editar_nota_protegida.html'
+
+    def get(self, request, pk):
+        nota = self.buscar(request, pk)
+        return render(request, self.modelo, {'nota': nota, 'form_senha': FormSenhaNota()})
+
+    def post(self, request, pk):
+        nota = self.buscar(request, pk)
+        if request.POST.get('etapa') == 'salvar':
+            return self.salvar(request, nota)
+        return self.abrir(request, nota)
+
+    def abrir(self, request, nota):
+        form_senha = FormSenhaNota(request.POST)
+        if form_senha.is_valid():
+            try:
+                conteudo = nota.decifrar(form_senha.cleaned_data['senha'])
+            except SenhaIncorreta:
+                form_senha.add_error('senha', 'Senha incorreta.')
+            else:
+                form = FormNotaProtegida(
+                    instance=nota, usuario=request.user, initial={'conteudo': conteudo},
+                )
+                return render(request, self.modelo, {'nota': nota, 'form': form})
+        return render(request, self.modelo, {'nota': nota, 'form_senha': form_senha})
+
+    def salvar(self, request, nota):
+        form = FormNotaProtegida(request.POST, instance=nota, usuario=request.user)
+        if form.is_valid():
+            senha = form.cleaned_data['senha']
+            try:
+                nota.decifrar(senha)  # confere a senha decifrando o conteúdo atual
+            except SenhaIncorreta:
+                form.add_error('senha', 'Senha incorreta. A nota não foi alterada.')
+            else:
+                nota = form.save(commit=False)
+                # Cifra o novo conteúdo com salt e nonce novos.
+                nota.gravar_conteudo(form.cleaned_data['conteudo'], senha)
+                nota.save()
+                form.save_m2m()  # grava as etiquetas (necessário após commit=False)
+                messages.success(request, 'Nota protegida atualizada.')
+                return redirect('caderno', pk=nota.caderno_id)
+        return render(request, self.modelo, {'nota': nota, 'form': form})
+
+    def buscar(self, request, pk):
+        return get_object_or_404(NotaProtegida, pk=pk, caderno__dono=request.user)
+
+
+@method_decorator(never_cache, name='dispatch')
+class RemoverProtecao(LoginRequiredMixin, View):
+    """RF15: com a senha certa, a nota volta a ser comum (texto legível no banco)."""
+
+    def get(self, request, pk):
+        nota = get_object_or_404(NotaProtegida, pk=pk, caderno__dono=request.user)
+        return render(request, 'app/remover_protecao.html', {'nota': nota, 'form': FormSenhaNota()})
+
+    def post(self, request, pk):
+        nota = get_object_or_404(NotaProtegida, pk=pk, caderno__dono=request.user)
+        form = FormSenhaNota(request.POST)
+        if form.is_valid():
+            try:
+                nota.remover_protecao(form.cleaned_data['senha'])
+            except SenhaIncorreta:
+                form.add_error('senha', 'Senha incorreta.')
+            else:
+                messages.success(request, 'Proteção removida. A nota voltou a ser comum.')
+                return redirect('nota', pk=pk)
+        return render(request, 'app/remover_protecao.html', {'nota': nota, 'form': form})

@@ -28,6 +28,13 @@ urlpatterns = [
     path('notas/<int:pk>/', views.VerNota.as_view(), name='nota'),
     path('notas/<int:pk>/editar/', views.EditarNota.as_view(), name='editar_nota'),
     path('notas/<int:pk>/excluir/', views.ExcluirNota.as_view(), name='excluir_nota'),
+     # Notas protegidas
+    path('notas/<int:pk>/proteger/', views.ProtegerNota.as_view(), name='proteger_nota'),
+    path('notas/<int:pk>/abrir/', views.AbrirNota.as_view(), name='abrir_nota'),
+    path('notas/<int:pk>/editar-protegida/', views.EditarNotaProtegida.as_view(),
+         name='editar_nota_protegida'),
+    path('notas/<int:pk>/remover-protecao/', views.RemoverProtecao.as_view(),
+         name='remover_protecao'),
      # Busca
     path('busca/', views.Buscar.as_view(), name='busca'),
 
